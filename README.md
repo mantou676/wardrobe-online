@@ -154,9 +154,9 @@ API 默认地址：`http://localhost:8080/wardrobe_back`
 
 > 替换为实际截图路径
 
-![首页](screenshots/index.png)
-![商品列表](screenshots/goods.png)
-![购物车](screenshots/cart.png)
+![首页截图](./screenshot/home.png)
+![商品列表截图](./screenshot/goods.png)
+![购物车截图](./screenshot/cart.png)
 
 ---
 
