@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 服装列表</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; color: #e0e6f0; min-height: 100vh; }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%); }
+
+        /* 导航栏 */
+        .nav-bar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 60px;
+            background: rgba(5,7,10,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo { font-size: 20px; font-weight: bold; letter-spacing: 1px; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .nav-link a { color: rgba(255,255,255,0.75); text-decoration: none; margin-left: 25px; font-size: 14px; transition: 0.3s; }
+        .nav-link a:hover { color: #4facfe; }
+        .nav-user { display: flex; align-items: center; gap: 8px; margin-left: 20px; }
+        .nav-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); transition: 0.3s; }
+        .nav-avatar:hover { transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.3); }
+        .nav-username { color: rgba(255,255,255,0.85); font-size: 13px; }
+
+        /* 筛选区 */
+        .filter-box {
+            position: relative; z-index: 5;
+            width: 1200px; margin: 30px auto 20px;
+            display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+            padding: 20px 28px;
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 12px;
+        }
+        .filter-box label { font-size: 14px; color: rgba(255,255,255,0.6); }
+        .filter-box select, .filter-box input {
+            padding: 8px 14px; font-size: 14px; border-radius: 6px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); color: #e0e6f0; outline: none;
+            transition: 0.3s;
+        }
+        .filter-box select:focus, .filter-box input:focus { border-color: #4facfe; }
+        .filter-box select option { background: #1a1f2c; color: #e0e6f0; }
+        #searchBtn {
+            padding: 8px 22px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #fff; font-weight: bold;
+            transition: 0.3s;
+        }
+        #searchBtn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(79,172,254,0.4); }
+
+        /* 商品网格 */
+        .goods-wrap {
+            position: relative; z-index: 5;
+            width: 1200px; margin: 0 auto 60px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+        }
+        .goods-item {
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; overflow: hidden;
+            transition: all 0.3s;
+        }
+        .goods-item:hover {
+            transform: translateY(-4px); border-color: rgba(79,172,254,0.3);
+            box-shadow: 0 10px 30px rgba(79,172,254,0.12);
+        }
+        .goods-item img { width: 100%; height: 220px; object-fit: cover; }
+        .goods-info { padding: 16px; }
+        .goods-name { font-size: 16px; font-weight: 500; margin-bottom: 8px; color: #e0e6f0; }
+        .goods-info .meta { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 8px; }
+        .goods-price { font-size: 20px; font-weight: bold; color: #f87171; margin-bottom: 10px; }
+        .detail-btn {
+            width: 100%; padding: 8px 0; border: none; border-radius: 6px; cursor: pointer;
+            background: rgba(79,172,254,0.2); color: #4facfe; font-size: 14px; transition: 0.3s;
+        }
+        .detail-btn:hover { background: #4facfe; color: #fff; }
+        .empty-tip { position: relative; z-index: 5; text-align: center; font-size: 16px; color: rgba(255,255,255,0.35); margin-top: 80px; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="nav-bar">
+        <div class="logo">✦ 网上衣橱</div>
+        <div class="nav-link">
+            <a href="../index.html">首页</a>
+            <a href="./goods.html">服装列表</a>
+            <a href="./cart.html">购物车</a>
+            <a href="./order.html">我的订单</a>
+            <a href="./login.html">登录</a>
+            <a href="./register.html">注册</a>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <div class="filter-box">
+        <div><label>类别：</label><select id="typeSelect"><option value="">全部类别</option></select></div>
+        <div><label>风格：</label><select id="styleSelect"><option value="">全部风格</option></select></div>
+        <div><label>搜索：</label><input type="text" id="searchInput" placeholder="输入服装名称"></div>
+        <button id="searchBtn">查询</button>
+    </div>
+
+    <div class="goods-wrap" id="goodsBox"></div>
+    <div class="empty-tip" id="emptyTip" style="display:none;">暂无匹配的服装</div>
+
+    <script>
+        var typeSelect = document.getElementById("typeSelect");
+        var styleSelect = document.getElementById("styleSelect");
+        var goodsBox = document.getElementById("goodsBox");
+        var emptyTip = document.getElementById("emptyTip");
+        var searchInput = document.getElementById("searchInput");
+        var searchBtn = document.getElementById("searchBtn");
+
+        window.onload = function(){
+            loadAllType();
+            loadAllStyle();
+            loadGoods();
+        }
+
+        async function loadAllType() {
+            try {
+                var res = await request.get("/allTypes");
+                if (res.code === 200 && res.data) {
+                    res.data.forEach(function(item){
+                        var opt = document.createElement("option");
+                        opt.value = item.typeName; opt.innerText = item.typeName;
+                        typeSelect.appendChild(opt);
+                    });
+                }
+            } catch(e) { console.error("加载类别失败", e); }
+        }
+
+        async function loadAllStyle() {
+            try {
+                var res = await request.get("/allStyles");
+                if (res.code === 200 && res.data) {
+                    res.data.forEach(function(item){
+                        var opt = document.createElement("option");
+                        opt.value = item; opt.innerText = item;
+                        styleSelect.appendChild(opt);
+                    });
+                }
+            } catch(e) { console.error("加载风格失败", e); }
+        }
+
+        async function loadGoods() {
+            try {
+                var type = typeSelect.value;
+                var style = styleSelect.value;
+                var name = searchInput.value.trim();
+                goodsBox.innerHTML = ""; emptyTip.style.display = "none";
+
+                var res;
+                if (name) {
+                    res = await request.get("/clothesByName", { params: { clothesName: name } });
+                } else {
+                    res = await request.get("/allClothes", { params: { style: style, type: type } });
+                }
+
+                if (res.code !== 200 || !res.data) { alert(res.msg || "查询失败"); return; }
+
+                var goodsList = res.data;
+                if (goodsList.length === 0) { emptyTip.style.display = "block"; return; }
+
+                goodsList.forEach(function(goods){
+                    goodsBox.innerHTML +=
+                        '<div class="goods-item">' +
+                        '<img src="../images/' + goods.image + '" alt="' + goods.clothName + '">' +
+                        '<div class="goods-info">' +
+                        '<div class="goods-name">' + goods.clothName + '</div>' +
+                        '<div class="meta">' + goods.typeName + ' · ' + goods.style + '</div>' +
+                        '<div class="goods-price">¥' + goods.price + '</div>' +
+                        '<button class="detail-btn" onclick="jumpDetail(' + goods.id + ')">查看详情</button>' +
+                        '</div></div>';
+                });
+            } catch(e) { console.error(e); alert("接口请求异常，请检查后端服务和跨域配置"); }
+        }
+
+        function jumpDetail(id) { location.href = "./detail.html?id=" + id; }
+
+        searchBtn.addEventListener("click", loadGoods);
+        typeSelect.addEventListener("change", loadGoods);
+        styleSelect.addEventListener("change", loadGoods);
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+            var starGeo = new THREE.BufferGeometry();
+            var n = 1800, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 100;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.6 }));
+            scene.add(stars);
+            function animate() { requestAnimationFrame(animate); stars.rotation.y -= 0.0003; renderer.render(scene, camera); }
+            animate();
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <script>(function(){var u=localStorage.getItem("username");var a=localStorage.getItem("avatar");var e=document.getElementById("navUser");if(e&&u){e.style.display="flex";var c=document.getElementById("avatarCircle");c.style.cursor="pointer";if(a){c.innerHTML='<img src="../images/'+a+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">'}else{c.innerText=u.substring(0,1)}document.getElementById("avatarName").innerText=u;var p="./userInfo.html";c.onclick=function(e){e.stopPropagation();var av=localStorage.getItem("avatar");if(av){showZoom("../images/"+av)}else{location.href=p}};function showZoom(src){var old=document.getElementById("zoomMask");if(old)old.remove();var mask=document.createElement("div");mask.id="zoomMask";mask.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";mask.onclick=function(){mask.remove()};var img=document.createElement("img");img.src=src;img.style.cssText="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";mask.appendChild(img);document.body.appendChild(mask)}}})();</script>
+</body>
+</html>

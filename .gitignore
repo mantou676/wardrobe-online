@@ -1,0 +1,22 @@
+# Claude
+.claude/
+
+# IDE
+.idea/
+*.iml
+out/
+
+# Maven
+target/
+*.war
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Node (如果有)
+node_modules/

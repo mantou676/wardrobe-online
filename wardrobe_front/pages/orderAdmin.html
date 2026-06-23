@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 后台 - 订单管理</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; color: #e0e6f0; height: 100vh; overflow: hidden; }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%); }
+
+        .top-bar {
+            position: relative; z-index: 10;
+            height: 60px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(5,7,10,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .top-bar .brand { background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: bold; font-size: 17px; letter-spacing: 1px; }
+        .admin-info { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); }
+        .top-bar a { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 13px; margin-left: 10px; transition: 0.3s; }
+        .top-bar a:hover { color: #f87171; }
+
+        .container { position: relative; z-index: 5; display: flex; height: calc(100vh - 60px); }
+        .sidebar {
+            width: 200px; padding: 20px 0; flex-shrink: 0;
+            background: rgba(255,255,255,0.02); border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .menu-item {
+            height: 46px; line-height: 46px; padding-left: 28px; cursor: pointer; font-size: 14px;
+            color: rgba(255,255,255,0.55); transition: 0.3s; border-left: 3px solid transparent;
+        }
+        .menu-item:hover { color: #e0e6f0; background: rgba(79,172,254,0.05); }
+        .menu-item.active { color: #4facfe; background: rgba(79,172,254,0.08); border-left-color: #4facfe; }
+
+        .main { flex: 1; padding: 24px; overflow-y: auto; }
+
+        .search-box {
+            display: flex; gap: 12px; align-items: center; padding: 16px 20px; margin-bottom: 20px;
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+        }
+        .search-box input, .search-box select {
+            padding: 8px 14px; font-size: 13px; border-radius: 6px; min-width: 180px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); color: #e0e6f0; outline: none;
+        }
+        .search-box select option { background: #1a1f2c; color: #e0e6f0; }
+        .search-box input:focus, .search-box select:focus { border-color: #4facfe; }
+        .btn { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.3s; }
+        .btn-search { background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; }
+        .btn-search:hover { box-shadow: 0 4px 14px rgba(79,172,254,0.4); }
+        .btn-reset { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); }
+        .btn-reset:hover { background: rgba(255,255,255,0.12); }
+        .btn-send { padding: 5px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; background: linear-gradient(135deg, #34d399, #10b981); color: #fff; transition: 0.3s; }
+        .btn-send:hover { box-shadow: 0 3px 10px rgba(52,211,153,0.4); }
+
+        table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.02); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        th, td { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 10px 10px; text-align: center; font-size: 13px; }
+        th { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="top-bar">
+        <span class="brand">✦ 网上衣橱 · 后台管理</span>
+        <div class="admin-info">
+            <div class="avatar" id="adminAvatar">A</div>
+            <span id="adminName">admin</span>
+            <a href="javascript:logout()">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="menu-item" onclick="jump('adminIndex.html')">首页</div>
+            <div class="menu-item" onclick="jump('clothesAdmin.html')">服装管理</div>
+            <div class="menu-item active" onclick="jump('orderAdmin.html')">订单管理</div>
+            <div class="menu-item" onclick="jump('userAdmin.html')">用户管理</div>
+        </div>
+        <div class="main">
+            <div class="search-box">
+                <input type="text" id="searchName" placeholder="请输入用户姓名">
+                <select id="statusSelect">
+                    <option value="">全部状态</option>
+                    <option value="0">未支付</option>
+                    <option value="1">待发货</option>
+                    <option value="2">已发货</option>
+                    <option value="3">已收货</option>
+                </select>
+                <button class="btn btn-search" onclick="loadOrderList()">搜索</button>
+                <button class="btn btn-reset" onclick="resetSearch()">重置</button>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>编号</th><th>商品详情</th><th>金额</th><th>状态</th><th>用户</th><th>地址</th><th>时间</th><th>操作</th></tr>
+                </thead>
+                <tbody id="orderTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        var adminId = localStorage.getItem("adminId");
+        var token = localStorage.getItem("token");
+        var tableBody = document.getElementById("orderTableBody");
+
+        window.onload = function(){
+            if(!adminId || !token){ alert("请先登录管理员账号"); location.href = "./adminLogin.html"; return; }
+            var n = localStorage.getItem("adminName") || "admin";
+            document.getElementById("adminName").innerText = n;
+            document.getElementById("adminAvatar").innerText = n.substring(0,1);
+            loadOrderList();
+        }
+
+        async function loadOrderList(){
+            var name = document.getElementById("searchName").value.trim();
+            var status = document.getElementById("statusSelect").value;
+            tableBody.innerHTML = "";
+            try {
+                var res = await request.get("/getAllOrder", { params: { userName: name, status: status } });
+                if(res.code !== 200){ alert(res.msg); return; }
+                var list = res.data;
+                if(list.length === 0){ tableBody.innerHTML = '<tr><td colspan="8">暂无匹配订单数据</td></tr>'; return; }
+                list.forEach(function(item){
+                    var statusText = ["未支付","待发货","已发货","已收货"][item.status] || "";
+                    var optHtml = item.status === 1 ? '<button class="btn-send" onclick="sendGoods('+item.id+')">发货</button>' : "";
+                    tableBody.innerHTML +=
+                        '<tr>' +
+                        '<td>'+item.id+'</td><td>'+item.clothesDetails+'</td><td>¥'+item.price+'</td>' +
+                        '<td>'+statusText+'</td><td>'+(item.userName||'')+'</td>' +
+                        '<td>'+(item.address||'')+'</td><td>'+(item.time||'')+'</td>' +
+                        '<td>'+optHtml+'</td></tr>';
+                });
+            } catch(e){ alert("加载订单失败"); console.error(e); }
+        }
+
+        function resetSearch(){ document.getElementById("searchName").value = ""; document.getElementById("statusSelect").value = ""; loadOrderList(); }
+
+        async function sendGoods(orderId){
+            if(!confirm("确认执行发货操作？")) return;
+            try {
+                var res = await request.post("/sendOrder", { id: orderId });
+                if(res.code === 200){ alert("发货成功！"); loadOrderList(); }
+                else { alert(res.msg); }
+            } catch(e){ alert("发货请求异常"); }
+        }
+
+        function jump(page){ location.href = "./" + page; }
+        function logout(){ localStorage.clear(); location.href = "./adminLogin.html"; }
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+            var geo = new THREE.BufferGeometry();
+            var n = 1500, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 100;
+            geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.08, color: 0xffffff, transparent: true, opacity: 0.5 }));
+            scene.add(stars);
+            function animate() { requestAnimationFrame(animate); stars.rotation.y -= 0.0002; renderer.render(scene, camera); }
+            animate();
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+</body>
+</html>

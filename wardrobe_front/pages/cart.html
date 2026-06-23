@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 购物车</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; color: #e0e6f0; min-height: 100vh; }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%); }
+
+        .nav-bar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 60px;
+            background: rgba(5,7,10,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo { font-size: 20px; font-weight: bold; letter-spacing: 1px; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .nav-link a { color: rgba(255,255,255,0.75); text-decoration: none; margin-left: 25px; font-size: 14px; transition: 0.3s; }
+        .nav-link a:hover { color: #4facfe; }
+        .nav-user { display: flex; align-items: center; gap: 8px; margin-left: 20px; }
+        .nav-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); transition: 0.3s; }
+        .nav-avatar:hover { transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.3); }
+        .nav-username { color: rgba(255,255,255,0.85); font-size: 13px; }
+
+        .page-title {
+            position: relative; z-index: 5; width: 1100px; margin: 30px auto 16px;
+            font-size: 22px; font-weight: 500; color: #e0e6f0; letter-spacing: 1px;
+        }
+
+        .cart-wrap {
+            position: relative; z-index: 5; width: 1100px; margin: 0 auto;
+        }
+        .cart-item {
+            display: flex; align-items: center; gap: 24px; padding: 20px; margin-bottom: 12px;
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 12px;
+            transition: 0.3s;
+        }
+        .cart-item:hover { border-color: rgba(79,172,254,0.2); }
+        .cart-item img { width: 100px; height: 100px; object-fit: cover; border-radius: 8px; }
+        .cart-info { flex: 1; }
+        .cart-info h3 { font-size: 16px; margin-bottom: 6px; }
+        .cart-info p { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 4px; }
+        .num-box { display: flex; align-items: center; gap: 0; }
+        .num-box button {
+            width: 32px; height: 32px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer;
+            background: rgba(255,255,255,0.05); color: #e0e6f0; font-size: 16px; transition: 0.3s;
+        }
+        .num-box button:hover { background: rgba(79,172,254,0.3); }
+        .num-box button:first-child { border-radius: 6px 0 0 6px; }
+        .num-box button:last-child { border-radius: 0 6px 6px 0; }
+        .num-box span { width: 40px; text-align: center; font-size: 15px; color: #e0e6f0; }
+        .subtotal { font-size: 16px; font-weight: bold; color: #f87171; min-width: 80px; text-align: right; }
+        .del-btn {
+            padding: 6px 14px; border: 1px solid rgba(248,113,113,0.3); border-radius: 6px; cursor: pointer;
+            background: transparent; color: #f87171; font-size: 13px; transition: 0.3s;
+        }
+        .del-btn:hover { background: #f87171; color: #fff; }
+
+        .total-section {
+            position: relative; z-index: 5; width: 1100px; margin: 24px auto 60px;
+            display: flex; justify-content: flex-end; align-items: center; gap: 24px;
+        }
+        #totalBox { font-size: 22px; font-weight: bold; color: #f87171; }
+        #settleBtn {
+            padding: 12px 40px; border: none; border-radius: 8px; cursor: pointer;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            color: #fff; font-size: 16px; font-weight: bold; letter-spacing: 1px;
+            transition: 0.3s;
+        }
+        #settleBtn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(248,113,113,0.4); }
+
+        .empty-cart { position: relative; z-index: 5; text-align: center; color: rgba(255,255,255,0.35); font-size: 16px; margin-top: 80px; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="nav-bar">
+        <div class="logo">✦ 网上衣橱</div>
+        <div class="nav-link">
+            <a href="../index.html">首页</a>
+            <a href="./goods.html">服装列表</a>
+            <a href="./cart.html">购物车</a>
+            <a href="./order.html">我的订单</a>
+            <a href="./login.html">登录</a>
+            <a href="./register.html">注册</a>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <div class="page-title">🛒 我的购物车</div>
+    <div class="cart-wrap" id="cartBox"></div>
+    <div class="total-section">
+        <span id="totalBox"></span>
+        <button id="settleBtn" style="display:none;">立即结算</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <script>
+        var userId = localStorage.getItem("userId");
+        if (!userId) { alert("请先登录"); location.href = "./login.html"; }
+        var allCartList = [];
+
+        async function loadCartData(){
+            try {
+                var res = await request.get("/getCartDataByUser", { params: { userId: userId } });
+                if (res.code === 200 && res.data && res.data.length > 0) {
+                    allCartList = res.data;
+                    renderCart();
+                } else {
+                    document.getElementById("cartBox").innerHTML = '<div class="empty-cart">购物车暂无商品，快去选购吧～</div>';
+                    document.getElementById("totalBox").innerHTML = "";
+                    document.getElementById("settleBtn").style.display = "none";
+                }
+            } catch(e) { console.error(e); alert("网络请求失败，请检查后端服务"); }
+        }
+
+        function renderCart(){
+            var html = "", totalPrice = 0;
+            allCartList.forEach(function(item){
+                var cloth = item.clothes;
+                var singlePrice = Number(cloth.price);
+                var subTotal = singlePrice * item.amount;
+                totalPrice += subTotal;
+                html +=
+                    '<div class="cart-item">' +
+                    '<img src="../images/' + cloth.image + '" alt="' + cloth.clothName + '">' +
+                    '<div class="cart-info">' +
+                    '<h3>' + cloth.clothName + '</h3>' +
+                    '<p>' + cloth.typeName + ' | 尺码：' + item.clothSize + '</p>' +
+                    '<p>单价：¥' + singlePrice + '</p>' +
+                    '</div>' +
+                    '<div class="num-box">' +
+                    '<button onclick="changeNum(' + item.id + ',' + (item.amount-1) + ')">-</button>' +
+                    '<span>' + item.amount + '</span>' +
+                    '<button onclick="changeNum(' + item.id + ',' + (item.amount+1) + ')">+</button>' +
+                    '</div>' +
+                    '<div class="subtotal">¥' + subTotal.toFixed(2) + '</div>' +
+                    '<button class="del-btn" onclick="delCart(' + item.id + ')">删除</button>' +
+                    '</div>';
+            });
+            document.getElementById("cartBox").innerHTML = html;
+            document.getElementById("totalBox").innerHTML = '合计：¥' + totalPrice.toFixed(2);
+            document.getElementById("settleBtn").style.display = "inline-block";
+        }
+
+        async function changeNum(cartId, newAmount){
+            if (newAmount < 1) return alert("数量不能小于1");
+            try {
+                var res = await request.post("/updateCartData", { id: cartId, amount: newAmount });
+                if (res.code === 200) { loadCartData(); }
+                else { alert(res.msg || "修改失败"); }
+            } catch(e) { console.error(e); alert("网络异常"); }
+        }
+
+        async function delCart(cartId){
+            if (!confirm("确定删除该商品？")) return;
+            try {
+                var res = await request.post("/delCartData", { id: cartId });
+                if (res.code === 200) { loadCartData(); }
+                else { alert(res.msg || "删除失败"); }
+            } catch(e) { console.error(e); alert("网络异常"); }
+        }
+
+        async function submitOrder(){
+            if (!userId) { alert("请先登录账号"); location.href = "./login.html"; return; }
+            if (allCartList.length === 0) { alert("购物车暂无商品，无法结算"); return; }
+            var totalPrice = 0, goodsText = "";
+            allCartList.forEach(function(item){
+                var cloth = item.clothes;
+                var sub = Number(cloth.price) * item.amount;
+                totalPrice += sub;
+                goodsText += cloth.clothName + "【尺码:" + item.clothSize + "】×" + item.amount + "件；";
+            });
+            var orderData = [{ clothesDetails: goodsText, price: totalPrice, status: 0, userId: Number(userId), address: "默认收货地址" }];
+            try {
+                var res = await request.post("/addOrder", orderData);
+                if (res.code === 200) { alert(res.data); loadCartData(); location.href = "./order.html"; }
+                else { alert(res.msg || "订单提交失败"); }
+            } catch(err) { console.error(err); alert("网络请求异常，请检查后端服务"); }
+        }
+
+        document.getElementById("settleBtn").addEventListener("click", submitOrder);
+        window.onload = loadCartData;
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+            var starGeo = new THREE.BufferGeometry();
+            var n = 1800, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 100;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.6 }));
+            scene.add(stars);
+            function animate() { requestAnimationFrame(animate); stars.rotation.y -= 0.0003; renderer.render(scene, camera); }
+            animate();
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <script>(function(){var u=localStorage.getItem("username");var a=localStorage.getItem("avatar");var e=document.getElementById("navUser");if(e&&u){e.style.display="flex";var c=document.getElementById("avatarCircle");c.style.cursor="pointer";if(a){c.innerHTML='<img src="../images/'+a+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">'}else{c.innerText=u.substring(0,1)}document.getElementById("avatarName").innerText=u;var p="./userInfo.html";c.onclick=function(e){e.stopPropagation();var av=localStorage.getItem("avatar");if(av){showZoom("../images/"+av)}else{location.href=p}};function showZoom(src){var old=document.getElementById("zoomMask");if(old)old.remove();var mask=document.createElement("div");mask.id="zoomMask";mask.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";mask.onclick=function(){mask.remove()};var img=document.createElement("img");img.src=src;img.style.cssText="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";mask.appendChild(img);document.body.appendChild(mask)}}})();</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Microsoft YaHei", "SimSun", serif;
+}
+.wrap {
+    display: flex;
+    justify-content: center;
+    padding: 80px 0;
+}
+.reg-card {
+    width: 440px;
+    padding: 42px 36px;
+    border-radius: 16px;
+}
+.reg-title {
+    text-align: center;
+    font-size: 26px;
+    margin-bottom: 36px;
+    letter-spacing: 2px;
+}
+.input-item {
+    margin-bottom: 24px;
+}
+.input-item label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+.input-item input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #ddd;
+    padding: 8px 4px;
+    font-size: 15px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+.btn-group {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+.submit-btn, .reset-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.tip {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 13px;
+}
+.tip a {
+    text-decoration:none;
+}
+.nav-bar {
+    padding: 16px 120px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+}
+.nav-link a {
+    text-decoration: none;
+    margin-left: 28px;
+    font-size: 15px;
+    transition: color 0.3s;
+}
+/* 用户头像区域 */
+.nav-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 20px;
+}
+.nav-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #fff;
+    color: #8b5cf6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.nav-avatar:hover {
+    transform: scale(1.1);
+}
+.nav-username {
+    color: #fff;
+    font-size: 14px;
+}

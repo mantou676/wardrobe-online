@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 首页</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow-x: hidden; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; }
+
+        /* === 3D 背景 === */
+        #canvas-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+            background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%);
+        }
+
+        /* === 导航栏 === */
+        .nav-bar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 60px;
+            background: rgba(5, 7, 10, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo {
+            font-size: 22px; font-weight: bold; letter-spacing: 2px;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav-link a {
+            color: rgba(255,255,255,0.75); text-decoration: none;
+            margin-left: 28px; font-size: 15px; transition: 0.3s;
+        }
+        .nav-link a:hover { color: #4facfe; text-shadow: 0 0 8px rgba(79,172,254,0.4); }
+
+        /* 用户头像 */
+        .nav-user { display: flex; align-items: center; gap: 8px; margin-left: 20px; }
+        .nav-avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 15px; cursor: pointer;
+            background: rgba(79,172,254,0.2); color: #4facfe;
+            border: 1px solid rgba(79,172,254,0.3); transition: 0.3s;
+        }
+        .nav-avatar:hover { transform: scale(1.1); box-shadow: 0 0 12px rgba(79,172,254,0.3); }
+        .nav-username { color: rgba(255,255,255,0.85); font-size: 14px; }
+
+        /* === 主内容区 === */
+        .main-content {
+            position: relative; z-index: 5;
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 120px;
+        }
+
+        /* 主标题 */
+        .hero-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 60px 80px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        .hero-title {
+            font-size: 42px; font-weight: 700; letter-spacing: 4px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 50%, #a78bfa 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+        }
+        .hero-subtitle {
+            font-size: 17px; color: rgba(255,255,255,0.5); letter-spacing: 1px;
+            margin-bottom: 40px;
+        }
+        .hero-btn {
+            display: inline-block;
+            padding: 14px 50px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff; text-decoration: none; font-size: 17px; font-weight: bold;
+            border-radius: 8px; letter-spacing: 2px;
+            box-shadow: 0 4px 20px rgba(79,172,254,0.35);
+            transition: all 0.3s;
+        }
+        .hero-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(79,172,254,0.5); }
+
+        /* === 功能卡片区 === */
+        .feature-cards {
+            display: flex; gap: 30px; margin-top: 60px; flex-wrap: wrap; justify-content: center;
+        }
+        .feature-card {
+            width: 220px; padding: 35px 25px;
+            background: rgba(255,255,255,0.03);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px; text-align: center;
+            transition: all 0.3s; cursor: pointer; text-decoration: none;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(79,172,254,0.3);
+            box-shadow: 0 10px 30px rgba(79,172,254,0.15);
+        }
+        .feature-icon {
+            font-size: 40px; margin-bottom: 16px;
+        }
+        .feature-name {
+            font-size: 17px; color: #e0e6f0; font-weight: 500; margin-bottom: 8px;
+        }
+        .feature-desc {
+            font-size: 13px; color: rgba(255,255,255,0.4); line-height: 1.6;
+        }
+
+        /* === 底部 === */
+        .footer {
+            position: relative; z-index: 5; text-align: center;
+            padding: 60px 0 30px;
+            color: rgba(255,255,255,0.25); font-size: 12px; letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <!-- 导航栏 -->
+    <div class="nav-bar">
+        <div class="logo">✦ 网上衣橱</div>
+        <div class="nav-link">
+            <a href="./pages/goods.html">服装列表</a>
+            <a href="./pages/cart.html">购物车</a>
+            <a href="./pages/order.html">我的订单</a>
+            <a href="./pages/login.html">登录</a>
+            <a href="./pages/register.html">注册</a>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main-content">
+        <div class="hero-card">
+            <h1 class="hero-title">网 上 衣 橱</h1>
+            <p class="hero-subtitle">浏览全部精美服装，挑选心仪穿搭</p>
+            <a href="./pages/goods.html" class="hero-btn">立 即 选 购</a>
+        </div>
+
+        <div class="feature-cards">
+            <a href="./pages/goods.html" class="feature-card">
+                <div class="feature-icon">👗</div>
+                <div class="feature-name">服装列表</div>
+                <div class="feature-desc">多风格 · 多品类<br>找到你的专属穿搭</div>
+            </a>
+            <a href="./pages/cart.html" class="feature-card">
+                <div class="feature-icon">🛒</div>
+                <div class="feature-name">购物车</div>
+                <div class="feature-desc">随时查看已选商品<br>一键下单结算</div>
+            </a>
+            <a href="./pages/order.html" class="feature-card">
+                <div class="feature-icon">📦</div>
+                <div class="feature-name">我的订单</div>
+                <div class="feature-desc">跟踪订单状态<br>管理购买记录</div>
+            </a>
+            <a href="./pages/userInfo.html" class="feature-card">
+                <div class="feature-icon">⚙️</div>
+                <div class="feature-name">个人中心</div>
+                <div class="feature-desc">管理个人信息<br>自定义头像风格</div>
+            </a>
+        </div>
+    </div>
+
+    <div class="footer">© 2025 网上衣橱 · Wardrobe Online</div>
+
+    <!-- Three.js 背景 -->
+    <script>
+        (function(){
+            var container = document.getElementById('canvas-container');
+            var scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x05070a, 0.0015);
+
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 28;
+
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // 星空
+            var starGeo = new THREE.BufferGeometry();
+            var starCount = 2500;
+            var posArray = new Float32Array(starCount * 3);
+            for(var i = 0; i < starCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 120;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+                size: 0.12, color: 0xffffff, transparent: true, opacity: 0.7
+            }));
+            scene.add(stars);
+
+            // 科技地球
+            var earthGroup = new THREE.Group();
+
+            var wireframe = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(11, 2),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, wireframe: true, transparent: true, opacity: 0.25 })
+            );
+            earthGroup.add(wireframe);
+
+            var inner = new THREE.Mesh(
+                new THREE.SphereGeometry(10.85, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x000000 })
+            );
+            earthGroup.add(inner);
+
+            var glow = new THREE.Mesh(
+                new THREE.SphereGeometry(11.6, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, transparent: true, opacity: 0.07, side: THREE.BackSide })
+            );
+            earthGroup.add(glow);
+
+            // 轨道环
+            var ringGeo = new THREE.TorusGeometry(14, 0.03, 16, 120);
+            var ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x4facfe, transparent: true, opacity: 0.2 }));
+            ring.rotation.x = Math.PI * 0.45;
+            scene.add(ring);
+
+            var ring2 = new THREE.Mesh(
+                new THREE.TorusGeometry(14.5, 0.02, 16, 120),
+                new THREE.MeshBasicMaterial({ color: 0x00f2fe, transparent: true, opacity: 0.12 })
+            );
+            ring2.rotation.x = Math.PI * 0.55;
+            ring2.rotation.y = Math.PI * 0.3;
+            scene.add(ring2);
+
+            scene.add(earthGroup);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                earthGroup.rotation.y += 0.0015;
+                earthGroup.rotation.x += 0.0004;
+                stars.rotation.y -= 0.0003;
+                ring.rotation.z += 0.0006;
+                ring2.rotation.z -= 0.0004;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <!-- 导航栏头像 -->
+    <script>
+    (function(){
+        var u = localStorage.getItem("username");
+        var a = localStorage.getItem("avatar");
+        var el = document.getElementById("navUser");
+        if (el && u) {
+            el.style.display = "flex";
+            var c = document.getElementById("avatarCircle");
+            c.style.cursor = "pointer";
+            if (a) {
+                c.innerHTML = '<img src="./images/' + a + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">';
+            } else {
+                c.innerText = u.substring(0,1);
+            }
+            document.getElementById("avatarName").innerText = u;
+            var userPage = "./pages/userInfo.html";
+            var imgBase = "./images/";
+            c.onclick = function(e){ e.stopPropagation(); var av = localStorage.getItem("avatar"); if(av){ showZoom(imgBase + av); } else { location.href = userPage; } };
+        }
+        function showZoom(src){
+            var old = document.getElementById("zoomMask");
+            if(old) old.remove();
+            var mask = document.createElement("div");
+            mask.id = "zoomMask";
+            mask.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";
+            mask.onclick = function(){ mask.remove(); };
+            var img = document.createElement("img");
+            img.src = src;
+            img.style.cssText = "max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";
+            mask.appendChild(img);
+            document.body.appendChild(mask);
+        }
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 注册</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+
+        #canvas-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%);
+        }
+
+        .nav-bar {
+            position: absolute; top: 0; left: 0; width: 100%; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 60px;
+            background: rgba(5,7,10,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo { font-size: 20px; font-weight: bold; letter-spacing: 1px; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .nav-link a { color: rgba(255,255,255,0.75); text-decoration: none; margin-left: 25px; font-size: 14px; transition: 0.3s; }
+        .nav-link a:hover { color: #4facfe; text-shadow: 0 0 6px rgba(79,172,254,0.4); }
+        .nav-user { display: flex; align-items: center; gap: 8px; margin-left: 20px; }
+        .nav-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); transition: 0.3s; }
+        .nav-avatar:hover { transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.3); }
+        .nav-username { color: rgba(255,255,255,0.85); font-size: 13px; }
+
+        .wrap {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 420px; z-index: 5;
+        }
+
+        .reg-card {
+            background: rgba(255,255,255,0.04); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
+            padding: 40px; box-shadow: 0 15px 40px rgba(0,0,0,0.5); color: #fff;
+        }
+
+        .reg-title {
+            text-align: center; margin-bottom: 30px;
+            font-size: 22px; font-weight: 500; letter-spacing: 3px;
+        }
+
+        .input-item { margin-bottom: 20px; }
+        .input-item label { display: block; margin-bottom: 8px; font-size: 12px; color: rgba(255,255,255,0.5); }
+        .input-item input {
+            width: 100%; padding: 11px 14px;
+            background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px; color: #e0e6f0; outline: none; font-size: 14px; transition: 0.3s;
+        }
+        .input-item input:focus {
+            border-color: #4facfe; background: rgba(0,0,0,0.4);
+            box-shadow: 0 0 10px rgba(79,172,254,0.2);
+        }
+        .input-item input::placeholder { color: rgba(255,255,255,0.2); }
+
+        .btn-group { display: flex; gap: 14px; margin-top: 28px; }
+        .submit-btn, .reset-btn {
+            flex: 1; padding: 11px; border: none; border-radius: 7px; cursor: pointer;
+            font-size: 15px; font-weight: bold; letter-spacing: 1px; transition: 0.3s;
+        }
+        .submit-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff; box-shadow: 0 4px 16px rgba(79,172,254,0.3);
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(79,172,254,0.5); }
+        .reset-btn {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.7);
+        }
+        .reset-btn:hover { background: rgba(255,255,255,0.1); }
+
+        .tip { text-align: center; margin-top: 18px; font-size: 12px; color: rgba(255,255,255,0.45); }
+        .tip a { color: #4facfe; text-decoration: none; }
+        .tip a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="nav-bar">
+        <div class="logo">✦ 网上衣橱</div>
+        <div class="nav-link">
+            <a href="../index.html">首页</a>
+            <a href="./login.html">登录</a>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <div class="wrap">
+        <div class="reg-card">
+            <h2 class="reg-title">用户注册</h2>
+
+            <div class="input-item">
+                <label>* 用户名</label>
+                <input id="username" type="text" placeholder="请输入用户名">
+            </div>
+            <div class="input-item">
+                <label>* 密码</label>
+                <input id="password" type="password" placeholder="请设置登录密码">
+            </div>
+            <div class="input-item">
+                <label>* 手机号</label>
+                <input id="phone" type="text" placeholder="请输入手机号">
+            </div>
+            <div class="input-item">
+                <label>* 收货地址</label>
+                <input id="address" type="text" placeholder="请输入收货地址">
+            </div>
+
+            <div class="btn-group">
+                <button class="submit-btn" onclick="submitReg()">注册账号</button>
+                <button class="reset-btn" onclick="resetForm()">重置</button>
+            </div>
+            <div class="tip">已有账号？<a href="./login.html">去登录</a></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <script src="../api/user.js"></script>
+    <script>
+        async function submitReg(){
+            var username = document.getElementById("username").value.trim();
+            var password = document.getElementById("password").value.trim();
+            var phone = document.getElementById("phone").value.trim();
+            var address = document.getElementById("address").value.trim();
+            if (!username || !password) { alert("用户名、密码不能为空！"); return; }
+            try {
+                var res = await registerApi({ username: username, password: password, phone: phone, address: address });
+                if (res.code === 200) { alert("注册成功，跳转登录页"); window.location.href = "./login.html"; }
+                else { alert(res.msg); }
+            } catch(e) { console.error(e); alert("接口请求异常，请检查后端8080服务和跨域配置"); }
+        }
+        window.resetForm = function(){ document.querySelectorAll("input").forEach(function(i){ i.value = ""; }); };
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x05070a, 0.0015);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 28;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+
+            // 星空
+            var starGeo = new THREE.BufferGeometry();
+            var n = 2200, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 120;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.12, color: 0xffffff, transparent: true, opacity: 0.65 }));
+            scene.add(stars);
+
+            // 线框地球
+            var earthGroup = new THREE.Group();
+            var wireframe = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(10, 2),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, wireframe: true, transparent: true, opacity: 0.22 })
+            );
+            earthGroup.add(wireframe);
+            var inner = new THREE.Mesh(
+                new THREE.SphereGeometry(9.85, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x000000 })
+            );
+            earthGroup.add(inner);
+            var glow = new THREE.Mesh(
+                new THREE.SphereGeometry(10.6, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, transparent: true, opacity: 0.06, side: THREE.BackSide })
+            );
+            earthGroup.add(glow);
+            scene.add(earthGroup);
+
+            // 轨道环
+            var ring = new THREE.Mesh(
+                new THREE.TorusGeometry(13.5, 0.025, 16, 120),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, transparent: true, opacity: 0.15 })
+            );
+            ring.rotation.x = Math.PI * 0.45;
+            scene.add(ring);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                earthGroup.rotation.y += 0.0015;
+                earthGroup.rotation.x += 0.0004;
+                stars.rotation.y -= 0.0003;
+                ring.rotation.z += 0.0005;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <script>(function(){var u=localStorage.getItem("username");var a=localStorage.getItem("avatar");var e=document.getElementById("navUser");if(e&&u){e.style.display="flex";var c=document.getElementById("avatarCircle");c.style.cursor="pointer";if(a){c.innerHTML='<img src="../images/'+a+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">'}else{c.innerText=u.substring(0,1)}document.getElementById("avatarName").innerText=u;var p="./userInfo.html";c.onclick=function(e){e.stopPropagation();var av=localStorage.getItem("avatar");if(av){showZoom("../images/"+av)}else{location.href=p}};function showZoom(src){var old=document.getElementById("zoomMask");if(old)old.remove();var mask=document.createElement("div");mask.id="zoomMask";mask.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";mask.onclick=function(){mask.remove()};var img=document.createElement("img");img.src=src;img.style.cssText="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";mask.appendChild(img);document.body.appendChild(mask)}}})();</script>
+</body>
+</html>

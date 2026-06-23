@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 后台 - 用户管理</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; color: #e0e6f0; height: 100vh; overflow: hidden; }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%); }
+
+        .top-bar {
+            position: relative; z-index: 10;
+            height: 60px; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(5,7,10,0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .top-bar .brand { background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: bold; font-size: 17px; letter-spacing: 1px; }
+        .admin-info { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); }
+        .top-bar a { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 13px; margin-left: 10px; transition: 0.3s; }
+        .top-bar a:hover { color: #f87171; }
+
+        .container { position: relative; z-index: 5; display: flex; height: calc(100vh - 60px); }
+        .sidebar {
+            width: 200px; padding: 20px 0; flex-shrink: 0;
+            background: rgba(255,255,255,0.02); border-right: 1px solid rgba(255,255,255,0.05);
+        }
+        .menu-item {
+            height: 46px; line-height: 46px; padding-left: 28px; cursor: pointer; font-size: 14px;
+            color: rgba(255,255,255,0.55); transition: 0.3s; border-left: 3px solid transparent;
+        }
+        .menu-item:hover { color: #e0e6f0; background: rgba(79,172,254,0.05); }
+        .menu-item.active { color: #4facfe; background: rgba(79,172,254,0.08); border-left-color: #4facfe; }
+
+        .main { flex: 1; padding: 30px; }
+
+        table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.02); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
+        th, td { border-bottom: 1px solid rgba(255,255,255,0.05); padding: 13px 12px; text-align: center; font-size: 14px; }
+        th { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.5); font-weight: 500; }
+        .role-badge { padding: 3px 10px; border-radius: 10px; font-size: 12px; }
+        .role-admin { background: rgba(79,172,254,0.2); color: #4facfe; }
+        .role-user { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="top-bar">
+        <span class="brand">✦ 网上衣橱 · 后台管理</span>
+        <div class="admin-info">
+            <div class="avatar" id="adminAvatar">A</div>
+            <span id="adminName">admin</span>
+            <a href="javascript:logout()">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="menu-item" onclick="jump('adminIndex.html')">首页</div>
+            <div class="menu-item" onclick="jump('clothesAdmin.html')">服装管理</div>
+            <div class="menu-item" onclick="jump('orderAdmin.html')">订单管理</div>
+            <div class="menu-item active" onclick="jump('userAdmin.html')">用户管理</div>
+        </div>
+        <div class="main">
+            <table>
+                <thead>
+                    <tr><th>用户ID</th><th>用户名</th><th>手机号</th><th>收货地址</th><th>角色</th></tr>
+                </thead>
+                <tbody id="userTbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        var adminId = localStorage.getItem("adminId");
+        var token = localStorage.getItem("token");
+
+        window.onload = async function(){
+            if(!adminId || !token){ alert("请登录管理员账号"); location.href = "./adminLogin.html"; return; }
+            var n = localStorage.getItem("adminName");
+            document.getElementById("adminName").innerText = n;
+            document.getElementById("adminAvatar").innerText = n.substring(0,1);
+            await loadAllUser();
+        }
+
+        async function loadAllUser(){
+            var tbody = document.getElementById("userTbody"); tbody.innerHTML = "";
+            var res = await request.get("/getAllUser");
+            if(res.code !== 200){ alert(res.msg); return; }
+            res.data.forEach(function(u){
+                var isAdmin = u.role === 1;
+                tbody.innerHTML +=
+                    '<tr>' +
+                    '<td>'+u.id+'</td><td>'+u.username+'</td>' +
+                    '<td>'+(u.phone||"无")+'</td><td>'+(u.address||"无")+'</td>' +
+                    '<td><span class="role-badge '+(isAdmin?'role-admin':'role-user')+'">'+(isAdmin?'管理员':'普通用户')+'</span></td>' +
+                    '</tr>';
+            });
+        }
+
+        function jump(page){ location.href = "./" + page; }
+        function logout(){ localStorage.clear(); location.href = "./adminLogin.html"; }
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+            var geo = new THREE.BufferGeometry();
+            var n = 1500, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 100;
+            geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.08, color: 0xffffff, transparent: true, opacity: 0.5 }));
+            scene.add(stars);
+            function animate() { requestAnimationFrame(animate); stars.rotation.y -= 0.0002; renderer.render(scene, camera); }
+            animate();
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+</body>
+</html>

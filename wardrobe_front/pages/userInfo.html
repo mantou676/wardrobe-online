@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 个人中心</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; color: #e0e6f0; min-height: 100vh; }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%); }
+
+        .nav-bar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 60px;
+            background: rgba(5,7,10,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo { font-size: 20px; font-weight: bold; letter-spacing: 1px; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .nav-link a { color: rgba(255,255,255,0.75); text-decoration: none; margin-left: 25px; font-size: 14px; transition: 0.3s; }
+        .nav-link a:hover { color: #4facfe; }
+        .nav-user { display: flex; align-items: center; gap: 8px; margin-left: 20px; }
+        .nav-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); transition: 0.3s; }
+        .nav-avatar:hover { transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.3); }
+        .nav-username { color: rgba(255,255,255,0.85); font-size: 13px; }
+
+        /* 表单卡片 */
+        .user-wrap {
+            position: relative; z-index: 5;
+            width: 580px; margin: 40px auto 60px; padding: 36px 40px;
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.07); border-radius: 16px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .title { font-size: 22px; margin-bottom: 28px; text-align: center; letter-spacing: 2px; font-weight: 500; }
+        .row { margin-bottom: 18px; display: flex; align-items: center; }
+        .row label { width: 110px; font-size: 14px; color: rgba(255,255,255,0.6); flex-shrink: 0; }
+        .row input, .row select {
+            flex: 1; padding: 10px 14px; font-size: 14px; border-radius: 6px;
+            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #e0e6f0; outline: none; transition: 0.3s;
+        }
+        .row input:focus, .row select:focus { border-color: #4facfe; }
+        .row input[readonly] { opacity: 0.5; }
+        .row select option { background: #1a1f2c; color: #e0e6f0; }
+
+        .submit-btn {
+            width: 100%; padding: 12px; border: none; border-radius: 8px; cursor: pointer;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: #fff;
+            font-size: 15px; font-weight: bold; letter-spacing: 1px; transition: 0.3s;
+        }
+        .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(79,172,254,0.4); }
+
+        .tip { margin-top: 15px; text-align: center; font-size: 14px; }
+        .success { color: #34d399; }
+        .error { color: #f87171; }
+
+        /* 头像 */
+        .avatar-preview {
+            width: 80px; height: 80px; border-radius: 50%; object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.1); cursor: zoom-in; transition: 0.3s;
+        }
+        .avatar-preview:hover { border-color: #4facfe; box-shadow: 0 0 12px rgba(79,172,254,0.3); }
+        .avatar-upload-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .avatar-upload-row input[type="file"] { flex: 1; font-size: 13px; color: rgba(255,255,255,0.5); }
+        .avatar-select-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+
+        .img-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); display: none; align-items: center;
+            justify-content: center; z-index: 9999; cursor: zoom-out;
+        }
+        .img-mask img { max-width: 90%; max-height: 90%; object-fit: contain; border-radius: 8px; }
+        .img-mask .close-btn { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 40px; cursor: pointer; }
+
+        .divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 28px 0; }
+        .section-title { font-size: 16px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
+        .section-title .link { font-size: 13px; color: #4facfe; cursor: pointer; text-decoration: underline; }
+
+        .pwd-block { display: none; background: rgba(255,255,255,0.03); padding: 18px; border-radius: 8px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.06); }
+        .pwd-block .row { margin-bottom: 12px; }
+        .pwd-block .row:last-child { margin-bottom: 0; }
+        .pwd-btn { padding: 8px 22px; border: none; border-radius: 6px; cursor: pointer; background: linear-gradient(135deg, #fb923c, #f97316); color: #fff; font-size: 14px; transition: 0.3s; }
+        .pwd-btn:hover { box-shadow: 0 4px 14px rgba(251,146,60,0.4); }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="nav-bar">
+        <div class="logo">✦ 网上衣橱</div>
+        <div class="nav-link">
+            <a href="../index.html">首页</a>
+            <a href="./goods.html">服装列表</a>
+            <a href="./cart.html">购物车</a>
+            <a href="./order.html">我的订单</a>
+            <a href="./userInfo.html">个人中心</a>
+            <span id="loginLink"></span>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <div class="img-mask" id="imgMask" onclick="closeImg()">
+        <span class="close-btn">&times;</span>
+        <img id="bigImg" src="">
+    </div>
+
+    <div class="user-wrap">
+        <h2 class="title">个人信息修改</h2>
+
+        <div class="row">
+            <label>用户ID：</label>
+            <input type="text" id="userId" readonly placeholder="自动加载">
+        </div>
+        <div class="row">
+            <label>用户名：</label>
+            <input type="text" id="username" placeholder="请输入用户名">
+        </div>
+        <div class="row">
+            <label>手机号：</label>
+            <input type="text" id="phone" placeholder="请输入手机号">
+        </div>
+        <div class="row">
+            <label>收货地址：</label>
+            <input type="text" id="address" placeholder="请输入收货地址">
+        </div>
+
+        <div class="row" style="align-items:flex-start;">
+            <label>头像：</label>
+            <div style="flex:1;">
+                <img class="avatar-preview" id="avatarPreview" src="" onclick="event.stopPropagation();openImg(this.src)" title="点击放大">
+                <div class="avatar-upload-row">
+                    <input type="file" id="avatarFile" accept="image/*" onchange="uploadAvatar()">
+                </div>
+                <div class="avatar-select-row">
+                    <select id="avatarSel" onchange="onSelectAvatar()" style="flex:1;">
+                        <option value="">使用默认头像（用户名首字）</option>
+                    </select>
+                </div>
+                <input type="hidden" id="avatarName">
+            </div>
+        </div>
+
+        <button class="submit-btn" onclick="saveBasicInfo()">保存基本信息</button>
+
+        <hr class="divider">
+
+        <div class="section-title">
+            <span>修改密码</span>
+            <span class="link" id="togglePwdLink" onclick="togglePwdBlock()">展开修改密码</span>
+        </div>
+        <div class="pwd-block" id="pwdBlock">
+            <div class="row">
+                <label>原始密码：</label>
+                <input type="password" id="oldPwd" placeholder="请输入当前密码">
+            </div>
+            <div class="row">
+                <label>新密码：</label>
+                <input type="password" id="newPwd" placeholder="请输入新密码">
+            </div>
+            <button class="pwd-btn" onclick="savePassword()">修改密码</button>
+            <span id="pwdMsg" style="margin-left:12px;font-size:13px;"></span>
+        </div>
+
+        <div class="tip" id="msgTip"></div>
+    </div>
+
+    <script>
+        var userId = localStorage.getItem("userId");
+        var userData = null;
+        var tip = document.getElementById("msgTip");
+
+        window.onload = async function(){
+            if(!userId){ alert("请先登录！"); location.href = "./login.html"; return; }
+            await loadUserInfo();
+            loadAvatarOptions();
+        }
+
+        function loadAvatarOptions(){
+            var imgs = ["pic_001.png","pic_002.png","pic_003.png","pic_004.png","pic_005.png","pic_006.png","pic_007.png","pic_008.png","pic_009.png","pic_010.png","pic_011.png","pic_012.jpg","pic_013.jpg"];
+            var sel = document.getElementById("avatarSel");
+            imgs.forEach(function(img){
+                var opt = document.createElement("option");
+                opt.value = img; opt.innerText = img; sel.appendChild(opt);
+            });
+            var cur = localStorage.getItem("avatar");
+            if(cur){
+                if(imgs.indexOf(cur) >= 0) sel.value = cur;
+                document.getElementById("avatarName").value = cur;
+                document.getElementById("avatarPreview").src = "../images/" + cur;
+            } else {
+                document.getElementById("avatarPreview").style.display = "none";
+            }
+        }
+
+        function onSelectAvatar(){
+            var v = document.getElementById("avatarSel").value;
+            document.getElementById("avatarName").value = v;
+            var p = document.getElementById("avatarPreview");
+            if(v){ p.src = "../images/" + v; p.style.display = "inline-block"; }
+            else { p.src = ""; p.style.display = "none"; }
+        }
+
+        async function uploadAvatar(){
+            var file = document.getElementById("avatarFile").files[0];
+            if(!file) return;
+            var formData = new FormData();
+            formData.append("clothesImage", file);
+            try {
+                var uploadRes = await axios.post("http://localhost:8080/wardrobe_back/uploadFile", formData);
+                var fileName = uploadRes.data;
+                document.getElementById("avatarName").value = fileName;
+                var p = document.getElementById("avatarPreview");
+                p.src = "../images/" + fileName;
+                p.style.display = "inline-block";
+                document.getElementById("avatarSel").value = "";
+            } catch(e) { alert("头像上传失败，请检查后端服务"); console.error(e); }
+        }
+
+        async function loadUserInfo(){
+            try {
+                var res = await request.get("/getCurrentUser", { params: { id: Number(userId) } });
+                if(res.code !== 200){ tip.className = "tip error"; tip.innerText = res.msg; return; }
+                userData = res.data;
+                document.getElementById("userId").value = userData.id;
+                document.getElementById("username").value = userData.username;
+                document.getElementById("phone").value = userData.phone;
+                document.getElementById("address").value = userData.address;
+            } catch(e){ tip.className = "tip error"; tip.innerText = "加载用户信息失败"; console.error(e); }
+        }
+
+        async function saveBasicInfo(){
+            tip.innerText = "";
+            var id = Number(userId);
+            var username = document.getElementById("username").value.trim();
+            var phone = document.getElementById("phone").value.trim();
+            var address = document.getElementById("address").value.trim();
+            var avatar = document.getElementById("avatarName").value;
+
+            if(!username || !phone || !address){
+                tip.className = "tip error"; tip.innerText = "用户名、手机号、地址不能为空！"; return;
+            }
+
+            var vo = { id: id, username: username, phone: phone, address: address, password: "", newpsw: "", avatar: avatar };
+
+            try {
+                var res = await request.post("/updateUser", vo);
+                if(res.code === 200 && res.data === "修改成功！"){
+                    tip.className = "tip success"; tip.innerText = "基本信息修改成功！";
+                    localStorage.setItem("avatar", avatar);
+                    refreshNavAvatar();
+                    await loadUserInfo();
+                } else { tip.className = "tip error"; tip.innerText = res.data || res.msg; }
+            } catch(e){ tip.className = "tip error"; tip.innerText = "网络请求异常"; console.error(e); }
+        }
+
+        function togglePwdBlock(){
+            var block = document.getElementById("pwdBlock");
+            var link = document.getElementById("togglePwdLink");
+            if(block.style.display === "block"){ block.style.display = "none"; link.innerText = "展开修改密码"; }
+            else { block.style.display = "block"; link.innerText = "收起修改密码"; }
+        }
+
+        async function savePassword(){
+            var msg = document.getElementById("pwdMsg"); msg.style.color = "#f87171";
+            var oldPwd = document.getElementById("oldPwd").value.trim();
+            var newPwd = document.getElementById("newPwd").value.trim();
+
+            if(!oldPwd){ msg.innerText = "请输入原始密码"; return; }
+            if(!newPwd){ msg.innerText = "请输入新密码"; return; }
+            if(oldPwd === newPwd){ msg.innerText = "新密码不能与原始密码相同"; return; }
+
+            var vo = { id: Number(userId), username: userData.username, phone: userData.phone, address: userData.address, password: oldPwd, newpsw: newPwd, avatar: userData.avatar || "" };
+
+            try {
+                var res = await request.post("/updateUser", vo);
+                if(res.code === 200 && res.data === "修改成功！"){
+                    msg.style.color = "#34d399"; msg.innerText = "密码修改成功！";
+                    document.getElementById("oldPwd").value = "";
+                    document.getElementById("newPwd").value = "";
+                    setTimeout(function(){ togglePwdBlock(); msg.innerText = ""; }, 1500);
+                } else { msg.innerText = res.data || res.msg; }
+            } catch(e){ msg.innerText = "网络请求异常"; console.error(e); }
+        }
+
+        function refreshNavAvatar(){
+            var u = localStorage.getItem("username");
+            var a = localStorage.getItem("avatar");
+            var c = document.getElementById("avatarCircle");
+            if(c && u){
+                if(a){ c.innerHTML = '<img src="../images/'+a+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">'; }
+                else { c.innerText = u.substring(0,1); }
+            }
+        }
+
+        function openImg(src){ if(!src) return; document.getElementById("bigImg").src = src; document.getElementById("imgMask").style.display = "flex"; }
+        function closeImg(){ document.getElementById("imgMask").style.display = "none"; }
+        function logout(){ localStorage.clear(); alert("已退出登录"); location.href = "./login.html"; }
+
+        (function changeNavLink(){
+            var linkWrap = document.getElementById("loginLink");
+            if(userId){ linkWrap.innerHTML = '<a href="javascript:logout()" style="color:rgba(255,255,255,0.75);text-decoration:none;margin-left:25px;font-size:14px;">退出登录</a>'; }
+            else { linkWrap.innerHTML = '<a href="./login.html" style="color:rgba(255,255,255,0.75);text-decoration:none;margin-left:25px;font-size:14px;">登录</a>'; }
+        })();
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+            var starGeo = new THREE.BufferGeometry();
+            var n = 1800, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 100;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.6 }));
+            scene.add(stars);
+            function animate() { requestAnimationFrame(animate); stars.rotation.y -= 0.0003; renderer.render(scene, camera); }
+            animate();
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <script>(function(){var u=localStorage.getItem("username");var a=localStorage.getItem("avatar");var e=document.getElementById("navUser");if(e&&u){e.style.display="flex";var c=document.getElementById("avatarCircle");c.style.cursor="pointer";if(a){c.innerHTML='<img src="../images/'+a+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">'}else{c.innerText=u.substring(0,1)}document.getElementById("avatarName").innerText=u;var p="./userInfo.html";c.onclick=function(e){e.stopPropagation();var av=localStorage.getItem("avatar");if(av){showZoom("../images/"+av)}else{location.href=p}};function showZoom(src){var old=document.getElementById("zoomMask");if(old)old.remove();var mask=document.createElement("div");mask.id="zoomMask";mask.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";mask.onclick=function(){mask.remove()};var img=document.createElement("img");img.src=src;img.style.cssText="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";mask.appendChild(img);document.body.appendChild(mask)}}})();</script>
+</body>
+</html>

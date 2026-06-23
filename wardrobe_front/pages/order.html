@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 我的订单</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #05070a; color: #e0e6f0; min-height: 100vh; }
+
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%); }
+
+        .nav-bar {
+            position: relative; z-index: 10;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 60px;
+            background: rgba(5,7,10,0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .logo { font-size: 20px; font-weight: bold; letter-spacing: 1px; background: linear-gradient(135deg, #4facfe, #00f2fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .nav-link a { color: rgba(255,255,255,0.75); text-decoration: none; margin-left: 25px; font-size: 14px; transition: 0.3s; }
+        .nav-link a:hover { color: #4facfe; }
+        .nav-user { display: flex; align-items: center; gap: 8px; margin-left: 20px; }
+        .nav-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; cursor: pointer; background: rgba(79,172,254,0.2); color: #4facfe; border: 1px solid rgba(79,172,254,0.3); transition: 0.3s; }
+        .nav-avatar:hover { transform: scale(1.1); box-shadow: 0 0 10px rgba(79,172,254,0.3); }
+        .nav-username { color: rgba(255,255,255,0.85); font-size: 13px; }
+
+        .page-title {
+            position: relative; z-index: 5; width: 1100px; margin: 30px auto 16px;
+            font-size: 22px; font-weight: 500; letter-spacing: 1px;
+        }
+
+        .filter-box {
+            position: relative; z-index: 5; width: 1100px; margin: 0 auto 24px;
+            display: flex; gap: 10px;
+        }
+        .filter-box button {
+            padding: 8px 18px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer;
+            background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.6); font-size: 14px; transition: 0.3s;
+        }
+        .filter-box button:hover, .filter-box button.active {
+            background: rgba(79,172,254,0.2); border-color: #4facfe; color: #4facfe;
+        }
+
+        .order-wrap {
+            position: relative; z-index: 5; width: 1100px; margin: 0 auto 60px;
+        }
+        .order-item {
+            padding: 22px 26px; margin-bottom: 14px;
+            background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 12px;
+            transition: 0.3s;
+        }
+        .order-item:hover { border-color: rgba(79,172,254,0.2); }
+        .order-item h3 { font-size: 16px; margin-bottom: 10px; font-weight: 500; }
+        .order-item .detail-row { display: flex; flex-wrap: wrap; gap: 8px 30px; margin-bottom: 12px; }
+        .order-item .detail-row p { font-size: 13px; color: rgba(255,255,255,0.55); }
+        .order-item .detail-row p span { color: #e0e6f0; }
+        .opt-group { display: flex; gap: 10px; }
+        .opt-btn {
+            padding: 6px 16px; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; transition: 0.3s;
+        }
+        .pay-btn { background: linear-gradient(135deg, #4facfe, #00f2fe); color: #fff; }
+        .pay-btn:hover { box-shadow: 0 4px 14px rgba(79,172,254,0.4); }
+        .receive-btn { background: linear-gradient(135deg, #34d399, #10b981); color: #fff; }
+        .receive-btn:hover { box-shadow: 0 4px 14px rgba(52,211,153,0.4); }
+        .del-btn { background: transparent; border: 1px solid rgba(248,113,113,0.3); color: #f87171; }
+        .del-btn:hover { background: #f87171; color: #fff; }
+        .tip-text { font-size: 13px; color: rgba(255,255,255,0.35); }
+        .empty-tip { text-align: center; margin-top: 80px; font-size: 16px; color: rgba(255,255,255,0.35); display: none; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="nav-bar">
+        <div class="logo">✦ 网上衣橱</div>
+        <div class="nav-link">
+            <a href="../index.html">首页</a>
+            <a href="./goods.html">服装列表</a>
+            <a href="./cart.html">购物车</a>
+            <a href="./order.html">我的订单</a>
+            <a href="./login.html">登录</a>
+            <a href="./register.html">注册</a>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <div class="page-title">📦 我的订单</div>
+
+    <div class="filter-box">
+        <button onclick="loadOrder(0)" id="btn0">未支付</button>
+        <button onclick="loadOrder(1)" id="btn1">待发货</button>
+        <button onclick="loadOrder(2)" id="btn2">已发货</button>
+        <button onclick="loadOrder(3)" id="btn3">已收货</button>
+    </div>
+
+    <div class="order-wrap" id="orderBox"></div>
+    <div class="empty-tip" id="emptyTip">暂无该状态下的订单</div>
+
+    <script>
+        var orderBox = document.getElementById("orderBox");
+        var emptyTip = document.getElementById("emptyTip");
+        var loginUserId = localStorage.getItem("userId");
+        var currentStatus = 0;
+
+        window.onload = function(){
+            if (!loginUserId) { alert("请先登录账号！"); location.href = "./login.html"; return; }
+            loadOrder(0);
+        };
+
+        async function loadOrder(status){
+            currentStatus = status;
+            orderBox.innerHTML = ""; emptyTip.style.display = "none";
+            // 高亮当前按钮
+            for(var i = 0; i <= 3; i++){
+                var b = document.getElementById("btn" + i);
+                if (b) b.className = (i === status) ? "active" : "";
+            }
+            try {
+                var res = await request.get("/getOrderByUser", { params: { userId: Number(loginUserId), status: status } });
+                if (res.code !== 200) { alert(res.msg || "查询订单失败"); return; }
+                var orderList = res.data;
+                if (orderList.length === 0) { emptyTip.style.display = "block"; return; }
+
+                orderList.forEach(function(order){
+                    var statusText = "", optHtml = "";
+                    switch (order.status) {
+                        case 0:
+                            statusText = "未支付";
+                            optHtml = '<button class="opt-btn pay-btn" onclick="payOrder(' + order.id + ')">立即支付</button>' +
+                                      '<button class="opt-btn del-btn" onclick="deleteOrder(' + order.id + ')">删除订单</button>';
+                            break;
+                        case 1:
+                            statusText = "待发货";
+                            optHtml = '<span class="tip-text">商家尚未发货，暂不可删除</span>';
+                            break;
+                        case 2:
+                            statusText = "已发货";
+                            optHtml = '<button class="opt-btn receive-btn" onclick="receiveOrder(' + order.id + ')">确认收货</button>';
+                            break;
+                        case 3:
+                            statusText = "已收货";
+                            optHtml = '<button class="opt-btn del-btn" onclick="deleteOrder(' + order.id + ')">删除订单</button>';
+                            break;
+                    }
+                    orderBox.innerHTML +=
+                        '<div class="order-item">' +
+                        '<h3>订单编号：' + order.id + '</h3>' +
+                        '<div class="detail-row">' +
+                        '<p>商品：<span>' + order.clothesDetails + '</span></p>' +
+                        '<p>总价：<span style="color:#f87171;font-weight:bold;">¥' + order.price + '</span></p>' +
+                        '<p>时间：<span>' + order.time + '</span></p>' +
+                        '<p>地址：<span>' + order.address + '</span></p>' +
+                        '<p>状态：<span style="color:#4facfe;">' + statusText + '</span></p>' +
+                        '</div>' +
+                        '<div class="opt-group">' + optHtml + '</div>' +
+                        '</div>';
+                });
+            } catch(err) { console.error("加载订单异常", err); alert("网络请求失败，请检查后端服务"); }
+        }
+
+        async function payOrder(orderId){
+            try {
+                var res = await request.post("/payOrder", { id: orderId });
+                if (res.code === 200) { alert(res.data); loadOrder(currentStatus); }
+                else { alert(res.msg || "支付操作失败"); }
+            } catch(err) { alert("网络异常，支付失败"); }
+        }
+
+        async function receiveOrder(orderId){
+            try {
+                var res = await request.post("/receiveOrder", { id: orderId });
+                if (res.code === 200) { alert(res.data); loadOrder(currentStatus); }
+                else { alert(res.msg || "收货操作失败"); }
+            } catch(err) { alert("网络异常，收货失败"); }
+        }
+
+        async function deleteOrder(orderId){
+            if (!confirm("确定要删除该订单吗？删除后无法恢复！")) return;
+            try {
+                var res = await request.post("/delOrderData", { id: orderId });
+                if (res.code === 200) { alert(res.data); loadOrder(currentStatus); }
+                else { alert(res.msg || "删除失败"); }
+            } catch(err) { alert("网络异常，删除失败"); }
+        }
+    </script>
+
+    <script>
+        (function(){
+            var c = document.getElementById('canvas-container');
+            var scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x05070a, 0.001);
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            c.appendChild(renderer.domElement);
+            var starGeo = new THREE.BufferGeometry();
+            var n = 1800, arr = new Float32Array(n * 3);
+            for(var i = 0; i < n * 3; i++) arr[i] = (Math.random() - 0.5) * 100;
+            starGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 0.1, color: 0xffffff, transparent: true, opacity: 0.6 }));
+            scene.add(stars);
+            function animate() { requestAnimationFrame(animate); stars.rotation.y -= 0.0003; renderer.render(scene, camera); }
+            animate();
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <script>(function(){var u=localStorage.getItem("username");var a=localStorage.getItem("avatar");var e=document.getElementById("navUser");if(e&&u){e.style.display="flex";var c=document.getElementById("avatarCircle");c.style.cursor="pointer";if(a){c.innerHTML='<img src="../images/'+a+'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;">'}else{c.innerText=u.substring(0,1)}document.getElementById("avatarName").innerText=u;var p="./userInfo.html";c.onclick=function(e){e.stopPropagation();var av=localStorage.getItem("avatar");if(av){showZoom("../images/"+av)}else{location.href=p}};function showZoom(src){var old=document.getElementById("zoomMask");if(old)old.remove();var mask=document.createElement("div");mask.id="zoomMask";mask.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";mask.onclick=function(){mask.remove()};var img=document.createElement("img");img.src=src;img.style.cssText="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";mask.appendChild(img);document.body.appendChild(mask)}}})();</script>
+</body>
+</html>

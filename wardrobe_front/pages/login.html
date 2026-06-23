@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>网上衣橱 - 登录</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+
+        #canvas-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #1a1f2c 0%, #05070a 100%);
+        }
+
+        .nav-bar {
+            position: absolute; top: 0; left: 0; width: 100%;
+            padding: 20px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 10;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .logo { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+        .nav-link a, .nav-user span {
+            color: rgba(255, 255, 255, 0.8); text-decoration: none; margin-left: 20px; font-size: 14px; transition: 0.3s;
+        }
+        .nav-link a:hover { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.6); }
+        .nav-user { display: flex; align-items: center; }
+        .nav-avatar img { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); margin-right: 8px; }
+
+        .wrap {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            z-index: 5;
+        }
+
+        .reg-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            color: #fff;
+        }
+
+        .reg-title {
+            text-align: center; margin-bottom: 30px;
+            font-size: 24px; font-weight: 500; letter-spacing: 2px;
+        }
+
+        .input-item { margin-bottom: 20px; }
+        .input-item label { display: block; margin-bottom: 8px; font-size: 12px; color: rgba(255,255,255,0.6); }
+        .input-item input {
+            width: 100%; padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px; color: #fff; outline: none; transition: 0.3s;
+        }
+        .input-item input:focus {
+            border-color: #4facfe; background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-group { margin-top: 30px; }
+        .submit-btn {
+            width: 100%; padding: 12px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none; border-radius: 6px; color: #fff; font-size: 16px; cursor: pointer; transition: 0.3s;
+            font-weight: bold; letter-spacing: 1px;
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4); }
+
+        .tip { text-align: center; margin-top: 15px; font-size: 12px; color: rgba(255,255,255,0.5); }
+        .tip a { color: #4facfe; text-decoration: none; }
+        .tip a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div class="nav-bar">
+        <div class="logo">网上衣橱</div>
+        <div class="nav-link">
+            <a href="../index.html">首页</a>
+            <a href="./register.html">注册</a>
+            <span id="navLoginTag"></span>
+        </div>
+        <div class="nav-user" id="navUser" style="display:none">
+            <div class="nav-avatar" id="avatarCircle"></div>
+            <span class="nav-username" id="avatarName"></span>
+        </div>
+    </div>
+
+    <div class="wrap">
+        <div class="reg-card">
+            <h2 class="reg-title">用户登录</h2>
+            <div class="input-item">
+                <label>* 用户名</label>
+                <input id="loginName" type="text" placeholder="请输入用户名">
+            </div>
+            <div class="input-item">
+                <label>* 密码</label>
+                <input id="loginPwd" type="password" placeholder="请输入密码">
+            </div>
+            <div class="btn-group">
+                <button class="submit-btn" onclick="loginSubmit()">登 录</button>
+            </div>
+            <div class="tip">没有账号？<a href="./register.html">去注册</a></div>
+            <div class="tip" style="margin-top:8px;">管理员？<a href="./adminLogin.html">后台登录</a></div>
+        </div>
+    </div>
+
+    <!-- 业务逻辑 -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="../js/request.js"></script>
+    <script src="../api/user.js"></script>
+    <script>
+        // 页面加载切换导航登录/退出按钮
+        window.onload = function () {
+            var userId = localStorage.getItem("userId");
+            var tag = document.getElementById("navLoginTag");
+            if (userId) {
+                tag.innerHTML = '<a href="javascript:logout()">退出登录</a>';
+            } else {
+                tag.innerHTML = '<a href="./login.html">登录</a>';
+            }
+        };
+
+        // 登录提交
+        async function loginSubmit() {
+            var username = document.getElementById("loginName").value.trim();
+            var password = document.getElementById("loginPwd").value.trim();
+            if (!username || !password) {
+                alert("账号密码不能为空");
+                return;
+            }
+            try {
+                var res = await loginApi({ username: username, password: password });
+                if (res.code === 200 && res.data) {
+                    var user = res.data.user;
+                    localStorage.setItem("userId", user.id);
+                    localStorage.setItem("username", user.username);
+                    localStorage.setItem("token", res.data.token);
+                    localStorage.setItem("role", user.role);
+                    localStorage.setItem("avatar", user.avatar || "");
+
+                    if (user.role === 1) {
+                        alert("管理员登录成功，前往后台");
+                        window.location.href = "./adminIndex.html";
+                    } else {
+                        alert("登录成功，前往首页");
+                        window.location.href = "../index.html";
+                    }
+                } else {
+                    alert(res.msg);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("接口请求异常，请检查后端服务和跨域配置");
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.clear();
+            alert("已退出登录");
+            location.href = "./login.html";
+        }
+    </script>
+
+    <!-- Three.js 星空地球特效 -->
+    <script>
+        (function(){
+            var container = document.getElementById('canvas-container');
+            var scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x05070a, 0.002);
+
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 25;
+
+            var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // 星空
+            var starGeo = new THREE.BufferGeometry();
+            var starCount = 2000;
+            var posArray = new Float32Array(starCount * 3);
+            for(var i = 0; i < starCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 100;
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+                size: 0.15, color: 0xffffff, transparent: true, opacity: 0.8
+            }));
+            scene.add(stars);
+
+            // 地球
+            var earthGroup = new THREE.Group();
+            var wireframe = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(10, 2),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, wireframe: true, transparent: true, opacity: 0.3 })
+            );
+            earthGroup.add(wireframe);
+
+            var inner = new THREE.Mesh(
+                new THREE.SphereGeometry(9.9, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x000000 })
+            );
+            earthGroup.add(inner);
+
+            var glow = new THREE.Mesh(
+                new THREE.SphereGeometry(10.5, 32, 32),
+                new THREE.MeshBasicMaterial({ color: 0x4facfe, transparent: true, opacity: 0.1, side: THREE.BackSide })
+            );
+            earthGroup.add(glow);
+
+            scene.add(earthGroup);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                earthGroup.rotation.y += 0.002;
+                earthGroup.rotation.x += 0.0005;
+                stars.rotation.y -= 0.0005;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', function(){
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+    </script>
+
+    <!-- 导航栏头像 -->
+    <script>(function(){var u=localStorage.getItem("username");var a=localStorage.getItem("avatar");var e=document.getElementById("navUser");if(e&&u){e.style.display="flex";var c=document.getElementById("avatarCircle");c.style.cursor="pointer";if(a){c.innerHTML='<img src="../images/'+a+'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;">'}else{c.innerText=u.substring(0,1)}document.getElementById("avatarName").innerText=u;var p="./userInfo.html";c.onclick=function(e){e.stopPropagation();var av=localStorage.getItem("avatar");if(av){showZoom("../images/"+av)}else{location.href=p}};function showZoom(src){var old=document.getElementById("zoomMask");if(old)old.remove();var mask=document.createElement("div");mask.id="zoomMask";mask.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out;";mask.onclick=function(){mask.remove()};var img=document.createElement("img");img.src=src;img.style.cssText="max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;";mask.appendChild(img);document.body.appendChild(mask)}}})();</script>
+</body>
+</html>
